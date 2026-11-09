@@ -1,0 +1,43 @@
+[package]
+name = "commission-showcase"
+version = "2.0.0"
+edition = "2024"
+description = "Turn finished commissions into post-ready showcase videos: background, frame, thumbnail intro, credit text, batch, social + portfolio outputs."
+
+[[bin]]
+name = "commission-showcase"
+path = "src/main.rs"
+
+[workspace]
+members = [".", "core"]
+
+[dependencies]
+showcase-core = { path = "core" }
+gpui = { package = "gpui-ce", version = "=0.2.2" }
+gpui_platform = { package = "gpui_ce_platform", version = "=0.1.0", features = ["font-kit"] }
+gpui-component = { package = "gpui_ce_components", version = "=0.2.0" }
+gpui-component-assets = { package = "gpui_ce_components_assets", version = "=0.2.0" }
+gpui-ce-motion = { version = "=0.4.0", features = ["gpui"] }
+image = { version = "0.25.1", default-features = false }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+anyhow = "1"
+async-channel = "2.5"
+smallvec = "1"
+chrono = { version = "0.4", default-features = false, features = ["clock"] }
+ttf-parser = "0.25"
+
+[target.'cfg(windows)'.build-dependencies]
+winresource = "0.1"
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 4
+strip = true
+
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 2
