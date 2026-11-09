@@ -170,7 +170,7 @@ impl Store {
             return list;
         }
         let mut porto = RenderSettings::default();
-        porto.outputs = Outputs { social: false, porto: true, thumbnail: true };
+        porto.outputs = Outputs { social: false, porto: true, thumbnail: true, gif: false };
         porto.intro.enabled = false;
         porto.audio.mode = AudioMode::None;
         porto.quality.porto_codec = Codec::H265;

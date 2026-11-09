@@ -5,7 +5,7 @@ Unicode true
 !include "LogicLib.nsh"
 
 !define APP "Commission Showcase"
-!define VERSION "2.0.0"
+!define VERSION "2.1.0"
 !define KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\CommissionShowcase"
 ; Uninstall key written by the earlier Electron build (electron-builder GUID)
 !define OLD_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\88b750e6-87a2-59a9-8e89-57486aa436fb"

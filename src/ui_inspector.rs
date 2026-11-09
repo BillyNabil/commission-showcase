@@ -599,8 +599,51 @@ impl AppView {
                     .child(Checkbox::new("out-thumb").small().label("Gambar thumbnail (.jpg)").checked(o.thumbnail).on_click(cx.listener(|this, v: &bool, _, cx| {
                         let v = *v;
                         this.edit_settings(cx, |s| s.outputs.thumbnail = v)
+                    })))
+                    .child(Checkbox::new("out-gif").small().label("Animasi GIF (.gif)").checked(o.gif).on_click(cx.listener(|this, v: &bool, _, cx| {
+                        let v = *v;
+                        this.edit_settings(cx, |s| s.outputs.gif = v)
                     }))),
             )
+            .when(o.gif, |d| {
+                d.child(
+                    group("GIF", cx)
+                        .child(field(
+                            "Dari versi",
+                            segmented(
+                                "gif-source",
+                                &[(GifSource::Social, "Sosmed"), (GifSource::Porto, "Porto")],
+                                s.gif.source,
+                                cx,
+                                |this, v, _, cx| this.edit_settings(cx, |s| s.gif.source = v),
+                            ),
+                            cx,
+                        ))
+                        .child(field(
+                            "Lebar",
+                            segmented(
+                                "gif-width",
+                                &[(480u32, "480"), (640, "640"), (800, "800"), (1080, "1080")],
+                                s.gif.width,
+                                cx,
+                                |this, v, _, cx| this.edit_settings(cx, |s| s.gif.width = v),
+                            ),
+                            cx,
+                        ))
+                        .child(field(
+                            "FPS",
+                            segmented(
+                                "gif-fps",
+                                &[(10u32, "10"), (12, "12"), (15, "15"), (20, "20")],
+                                s.gif.fps,
+                                cx,
+                                |this, v, _, cx| this.edit_settings(cx, |s| s.gif.fps = v),
+                            ),
+                            cx,
+                        ))
+                        .child(hint("Dibuat dari video yang sudah jadi, dalam render yang sama. Lebar lebih kecil & FPS lebih rendah = file lebih ringan.", cx)),
+                )
+            })
             .child(group("Ukuran", cx).child(sizes))
             .child(group("FPS", cx).child(segmented(
                 "fps",

@@ -304,10 +304,34 @@ pub struct Outputs {
     pub social: bool,
     pub porto: bool,
     pub thumbnail: bool,
+    /// Also export an animated GIF (made in the same ffmpeg pass)
+    pub gif: bool,
 }
 impl Default for Outputs {
     fn default() -> Self {
-        Self { social: true, porto: true, thumbnail: true }
+        Self { social: true, porto: true, thumbnail: true, gif: false }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum GifSource {
+    Social,
+    Porto,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct GifSettings {
+    /// Which version the GIF is made from
+    pub source: GifSource,
+    /// Width in px (height follows the aspect ratio)
+    pub width: u32,
+    pub fps: u32,
+}
+impl Default for GifSettings {
+    fn default() -> Self {
+        Self { source: GifSource::Social, width: 640, fps: 15 }
     }
 }
 
@@ -327,6 +351,7 @@ pub struct RenderSettings {
     pub audio: AudioSettings,
     pub quality: Quality,
     pub outputs: Outputs,
+    pub gif: GifSettings,
 }
 
 /// A saved style ("preset"). Stored in profiles.json for compatibility.

@@ -13,7 +13,7 @@ use anyhow::{anyhow, bail, Context, Result};
 
 use crate::graph::{build_render_args, fmt, BuildOptions};
 use crate::layout::expand_text;
-use crate::model::{OutputKind, ProbeInfo, RenderResult, RenderSettings, ResolvedAssets};
+use crate::model::{GifSource, OutputKind, ProbeInfo, RenderResult, RenderSettings, ResolvedAssets};
 use crate::probe::background_command;
 
 pub const CANCELED_MESSAGE: &str = "Dibatalkan";
@@ -117,14 +117,23 @@ pub fn run_ffmpeg(
         }
     });
 
+    // Monotonic progress.
+    let mut best = 0.0f64;
+    let mut report = |msg: Msg| {
+        let Msg::Progress(t) = msg;
+        let p = total_duration.filter(|d| *d > 0.0).map(|d| t / d);
+        if let Some(p) = p {
+            let p = p.clamp(0.0, 0.999);
+            if p > best {
+                best = p;
+                on_progress(p as f32);
+            }
+        }
+    };
     let mut killed = false;
     let status = loop {
         match rx.recv_timeout(Duration::from_millis(100)) {
-            Ok(Msg::Progress(t)) => {
-                if let Some(total) = total_duration.filter(|d| *d > 0.0) {
-                    on_progress((t / total).clamp(0.0, 0.999) as f32);
-                }
-            }
+            Ok(msg) => report(msg),
             Err(RecvTimeoutError::Timeout) | Err(RecvTimeoutError::Disconnected) => {}
         }
         if cancel.is_cancelled() && !killed {
@@ -133,10 +142,8 @@ pub fn run_ffmpeg(
         }
         if let Some(st) = child.try_wait()? {
             // drain remaining progress lines
-            while let Ok(Msg::Progress(t)) = rx.try_recv() {
-                if let Some(total) = total_duration.filter(|d| *d > 0.0) {
-                    on_progress((t / total).clamp(0.0, 0.999) as f32);
-                }
+            while let Ok(msg) = rx.try_recv() {
+                report(msg);
             }
             break st;
         }
@@ -193,6 +200,7 @@ pub fn render_job(bins: &Bins, job: &RenderJob, on_progress: &mut dyn FnMut(f32)
             porto = Some(job.out_dir.join(format!("{base}_porto.mp4")));
         }
     }
+    let gif = (s.outputs.gif && job.preview_seconds.is_none()).then(|| job.out_dir.join(format!("{base}.gif")));
     if social.is_none() && porto.is_none() {
         bail!("Aktifkan minimal satu output (Sosmed atau Porto)");
     }
@@ -220,7 +228,8 @@ pub fn render_job(bins: &Bins, job: &RenderJob, on_progress: &mut dyn FnMut(f32)
     })?;
 
     let mut produced: Vec<PathBuf> = social.iter().chain(porto.iter()).cloned().collect();
-    let scale = if s.outputs.thumbnail && job.preview_seconds.is_none() { 0.97 } else { 1.0 };
+    // Main pass gets most of the bar; the GIF step (if any) the rest.
+    let scale = if gif.is_some() { 0.85 } else if s.outputs.thumbnail && job.preview_seconds.is_none() { 0.97 } else { 1.0 };
     let res = run_ffmpeg(&bins.ffmpeg, &built.args, Some(built.total_duration), &mut |p| on_progress(p * scale), cancel);
     if let Some(t) = &text_file {
         remove_quiet(t);
@@ -230,6 +239,39 @@ pub fn render_job(bins: &Bins, job: &RenderJob, on_progress: &mut dyn FnMut(f32)
             remove_quiet(f);
         }
         return Err(e);
+    }
+
+    // Animated GIF made from the finished video of the chosen version.
+    if let Some(gif_path) = &gif {
+        let src = match s.gif.source {
+            GifSource::Porto => porto.as_ref().or(social.as_ref()),
+            GifSource::Social => social.as_ref().or(porto.as_ref()),
+        }
+        .cloned()
+        .expect("at least one video output");
+        let width = s.gif.width.max(120) / 2 * 2;
+        let fps = s.gif.fps.clamp(5, 30);
+        let args: Vec<String> = [
+            "-hide_banner", "-nostdin", "-y", "-loglevel", "error", "-progress", "pipe:1", "-nostats",
+            "-i", &src.to_string_lossy(),
+            "-vf", &format!(
+                "fps={fps},scale='min({width},iw)':-2:flags=lanczos,split[a][b];[a]palettegen=max_colors=192:stats_mode=diff[p];[b][p]paletteuse=dither=sierra2_4a:diff_mode=rectangle"
+            ),
+            "-loop", "0", &gif_path.to_string_lossy(),
+        ]
+        .iter()
+        .map(|x| x.to_string())
+        .collect();
+        let total = built.social_duration.or(built.porto_duration);
+        let (lo, hi) = (0.85f32, if s.outputs.thumbnail { 0.97 } else { 1.0 });
+        if let Err(e) = run_ffmpeg(&bins.ffmpeg, &args, total, &mut |p| on_progress(lo + p * (hi - lo)), cancel) {
+            for f in &produced {
+                remove_quiet(f);
+            }
+            remove_quiet(gif_path);
+            return Err(e);
+        }
+        produced.push(gif_path.clone());
     }
 
     // Thumbnail JPG from the finished output (exactly what viewers will see)

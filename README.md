@@ -40,6 +40,7 @@ From every input video:
 | `name_social.mp4` | background · your frame/watermark · credit text · thumbnail intro · music |
 | `name_porto.mp4` | background only, clean for your portfolio site |
 | `name_thumb.jpg` | the cover image |
+| `name.gif` *(optional)* | animated GIF of the social or portfolio version, in a width and fps you choose |
 
 The GIF is a real `_social.mp4` from the app: the **NEW COMMISSION** cover shows for the first frames (so feeds pick it as the thumbnail), then the 4-second piece loops to 8 seconds.
 
@@ -55,6 +56,7 @@ The GIF is a real `_social.mp4` from the app: the **NEW COMMISSION** cover shows
 - **Thumbnail at the start.** Click any frame in the filmstrip (or use your own image), optionally add a sticker. It's held for a few static frames and also exported as a `.jpg`.
 - **Credit text** with `{client}`, `{filename}` and `{date}` placeholders, a custom font, outline and shadow. The queue warns you when a video still has no client name.
 - **Batch rendering.** Drop a whole folder; one ffmpeg pass per video produces both versions. Progress and file sizes show per video, renders can be cancelled, and the encoder runs at low priority so your PC stays usable.
+- **Optional GIF.** Tick *Animasi GIF* and the same render job also produces a looping GIF (480–1080 px wide, 10–20 fps) with an optimized palette, made from the finished social or portfolio video.
 - **Small files that stay sharp.** H.264 tuned for animation with three quality presets, plus optional H.265 for the portfolio version (usually noticeably smaller).
 - **Loops short animations** (whole plays, never cut mid-loop) up to a minimum length, and mixes or replaces audio with automatic fades.
 - **Follows your Windows light/dark theme.** Motion is subtle, driven by springs from [gpui-motion](https://github.com/1bye/gpui-motion).
@@ -114,6 +116,7 @@ flowchart LR
     F --> O1[_social.mp4]
     F --> O2[_porto.mp4]
     O1 --> T[_thumb.jpg]
+    O1 -. optional .-> GIF[.gif]
 ```
 
 - **`core/`** (`showcase-core`) has no GUI dependencies: the data model, layout math, the ffmpeg filter-graph builder, probing, rendering with progress and cancel, and JSON storage. Covered by unit tests and an end-to-end render example.
@@ -145,7 +148,7 @@ Installer ([NSIS](https://nsis.sourceforge.io/)):
 
 ```powershell
 makensis -DEXE=C:\cst\release\commission-showcase.exe -DICON=assets\app\icon.ico `
-         -DOUT=dist\Commission-Showcase-Setup-2.0.0.exe installer\installer.nsi
+         -DOUT=dist\Commission-Showcase-Setup-2.1.0.exe installer\installer.nsi
 ```
 
 ## Data & portable mode

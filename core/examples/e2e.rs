@@ -38,6 +38,7 @@ fn main() -> anyhow::Result<()> {
                 s.intro.duration = 0.5;
                 s.text.enabled = true;
                 s.audio.mode = AudioMode::Replace;
+                s.outputs.gif = true;
             },
             bg: Some("bg.png"),
             frame: Some("frame.png"),

@@ -11,7 +11,7 @@ fn main() -> anyhow::Result<()> {
     let out = std::env::temp_dir().join("cs-progress");
     let job = RenderJob {
         job_id: "p".into(), input, probe, name: "p".into(), client: "x".into(), profile_name: "x".into(),
-        settings: RenderSettings::default(), assets: ResolvedAssets::default(), out_dir: out.clone(),
+        settings: { let mut s = RenderSettings::default(); s.outputs.gif = std::env::var("GIF").is_ok(); s }, assets: ResolvedAssets::default(), out_dir: out.clone(),
         file_template: "{name}".into(), temp_dir: out.clone(), default_font: showcase_core::util::default_font(), preview_seconds: None,
     };
     let t0 = Instant::now();
